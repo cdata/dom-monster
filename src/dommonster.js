@@ -552,7 +552,37 @@
     if(JR._lines.tip.length == 0 && JR._lines.warn.length == 0)
       JR.tip('No tips! Congratulations! It seems your site is up to speed!');
   };
-
+  
+  JR.rawOutput = {
+    log: [],
+    stats: []
+  };
+  
+  var jrLog = JR.log,
+      jrStats = JR.stats;
+  
+  JR.log = function(string, hint, type){
+    JR.rawOutput.log.push(
+      {
+        string: string,
+        hint: hint,
+        type: type
+      }
+    );
+    jrLog.apply(this, arguments);
+  };
+  
+  JR.stats = function(value, stat, type){
+    JR.rawOutput.stats.push(
+      {
+        value: value,
+        stat: stat,
+        type: type
+      }
+    );
+    jrStats.apply(this, arguments);
+  };
+  
   var IE = !!(window.attachEvent && navigator.userAgent.indexOf('Opera') === -1);
   if(IE) JR.getStyle = function(element, style) {
     style = (style == 'float' || style == 'cssFloat') ? 'styleFloat' : style;
@@ -603,4 +633,5 @@
       '</div>';
     JR.flush();
   },10);
- })();
+  
+})();
