@@ -595,43 +595,56 @@
     }
     return value;
   };
-
-  var old = $('jr_results_tips');
-  if(old) old.parentNode.removeChild(old);
-  setTimeout(function(){
-    if(JR._console)
-      JR.info('Check the JavaScript console of your browser for detailed information on some of the tips.');
-    try {
-      JR.performanceTips();
-    } catch(e) {
-      JR.info('Error '+e+' while analyzing page. '+dmlink('Please let the DOM Monster know about this problem', 'https://github.com/madrobby/dom-monster/issues') + '!');
-    };
-    var body = document.getElementsByTagName('body')[0], node = document.createElement('div');
-    node.id = 'jr_results';
-    body.appendChild(node);
-
-    node.style.cssText =
-      JR.reset+'text-align:left;z-index:1000000;letter-spacing:0;position:fixed;bottom:0;'+
-      'color:#444;font:12px/13px \'Helvetica Neue\', Verdana, Arial, sans serif;'+
-      'width:80%;left:10%';
-    node.innerHTML =
-      '<div id="jr_results_tips" style="'+JR.reset+'max-height:400px;margin:10px;padding:5px;overflow:auto;background:#fff;border:2px solid #b42328;-moz-border-radius:9px;-webkit-border-radius:9px;-webkit-box-shadow: 0px 2px 40px rgba(0,0,0,0.5);">' +
-        '<div style="'+JR.reset+'height:23px;font-size:16px;font-weight:normal;margin-top:0px;margin-bottom:5px;color:#444">'+
-          '<div style="'+JR.reset+'float:left;padding:5px 0px 3px 5px" id="jr_results_prognosis_container">'+
-            '<span id="jr_results_prognosis" style="'+JR.reset+'"></span> '+
-            '<span style="'+JR.reset+'font-size:12px;font-weight:normal" id="jr_results_warnings_container"><span id="jr_results_warnings" style="'+JR.reset+'"></span></span>'+
-          '</div>'+
-          '<div style="'+JR.reset+'cursor:pointer;float:right;padding:5px 10px 3px 10px;height:15px;background:#b42328;-webkit-border-radius:5px;color:#fff;text-shadow:0px 1px 3px rgba(0,0,0,0.5)" onclick="location.href=\'http://mir.aculo.us/dom-monster/\'">'+
-            'dom monster <span style="'+JR.reset+'font-size:10px">v'+JR.Version+'</span>'+
-          '</div>'+
-          '<div style="'+JR.reset+'color:#888;float:right;padding:7px 10px 0px 10px;font-size:10px;text-decoration:underline;cursor:pointer" onclick="JR.close()">'+
-            'close'+
-          '</div>'+
-        '</div>'+
-        '<div style="'+JR.reset+'float:left;width:220px;padding:4px;margin-top:2px" id="jr_stats">'+
-        '</div>'+
-      '</div>';
-    JR.flush();
-  },10);
+  
+  JR.execute = function(callback, noisy) {
+  
+    var old = $('jr_results_tips');
+    if(old) old.parentNode.removeChild(old);
+    setTimeout(function(){
+      if(JR._console)
+        JR.info('Check the JavaScript console of your browser for detailed information on some of the tips.');
+      try {
+        JR.performanceTips();
+      } catch(e) {
+        JR.info('Error '+e+' while analyzing page. '+dmlink('Please let the DOM Monster know about this problem', 'https://github.com/madrobby/dom-monster/issues') + '!');
+      };
+      
+      if(noisy){
+      
+        var body = document.getElementsByTagName('body')[0], node = document.createElement('div');
+        node.id = 'jr_results';
+        body.appendChild(node);
+    
+        node.style.cssText =
+          JR.reset+'text-align:left;z-index:1000000;letter-spacing:0;position:fixed;bottom:0;'+
+          'color:#444;font:12px/13px \'Helvetica Neue\', Verdana, Arial, sans serif;'+
+          'width:80%;left:10%';
+        node.innerHTML =
+          '<div id="jr_results_tips" style="'+JR.reset+'max-height:400px;margin:10px;padding:5px;overflow:auto;background:#fff;border:2px solid #b42328;-moz-border-radius:9px;-webkit-border-radius:9px;-webkit-box-shadow: 0px 2px 40px rgba(0,0,0,0.5);">' +
+            '<div style="'+JR.reset+'height:23px;font-size:16px;font-weight:normal;margin-top:0px;margin-bottom:5px;color:#444">'+
+              '<div style="'+JR.reset+'float:left;padding:5px 0px 3px 5px" id="jr_results_prognosis_container">'+
+                '<span id="jr_results_prognosis" style="'+JR.reset+'"></span> '+
+                '<span style="'+JR.reset+'font-size:12px;font-weight:normal" id="jr_results_warnings_container"><span id="jr_results_warnings" style="'+JR.reset+'"></span></span>'+
+              '</div>'+
+              '<div style="'+JR.reset+'cursor:pointer;float:right;padding:5px 10px 3px 10px;height:15px;background:#b42328;-webkit-border-radius:5px;color:#fff;text-shadow:0px 1px 3px rgba(0,0,0,0.5)" onclick="location.href=\'http://mir.aculo.us/dom-monster/\'">'+
+                'dom monster <span style="'+JR.reset+'font-size:10px">v'+JR.Version+'</span>'+
+              '</div>'+
+              '<div style="'+JR.reset+'color:#888;float:right;padding:7px 10px 0px 10px;font-size:10px;text-decoration:underline;cursor:pointer" onclick="JR.close()">'+
+                'close'+
+              '</div>'+
+            '</div>'+
+            '<div style="'+JR.reset+'float:left;width:220px;padding:4px;margin-top:2px" id="jr_stats">'+
+            '</div>'+
+          '</div>';
+        JR.flush();
+      
+      }
+      
+      if(callback){
+        
+        callback(JR.rawOutput);
+      }
+    },10);
+  };
   
 })();
