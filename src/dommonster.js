@@ -6,10 +6,14 @@
  */
 
 (function(){
-  if(!('JR' in window)) window.JR = { Version: '1.2.2' };
+  if(!('JR' in window)) window.JR = { Version: '1.2.3' };
   var JR = window.JR;
 
   function $(id){ return document.getElementById(id); }
+  
+  function $tagname(tagname){
+    return [].slice.call(document.getElementsByTagName(tagname));
+  }
 
   JR._lines = { info:[], tip:[], warn:[] };
   JR._console = ('console' in window && 'log' in console && 'warn' in console && 'info' in console);
@@ -97,8 +101,8 @@
   };
 
   JR.scriptTagsTips = function(){
-    var nodes = document.getElementsByTagName('script'),
-      head = document.head || document.getElementsByTagName('head')[0];
+    var nodes = $tagname('script'),
+      head = document.head || $tagname('head')[0];
 
     var count = 0, headcount = 0, i = nodes.length, sources = [], longInlines = [];
     while(i--){
@@ -180,6 +184,10 @@
     // Version number Extjs on http://www.sencha.com/products/js/download.php
     if(typeof Ext === 'object' && Ext.version < '3.3.1')
       JR.tip("You are using the Ext JS v"+Ext.version+".","There's a newer version available, which potentially includes performance updates.");
+
+    // Version number on http://rightjs.org/
+    if('RightJS' in window && RightJS.version < '2.2.0')
+      JR.tip("You are using the RightJS JavaScript framework v"+RightJS.version+".","There's a newer version available, which potentially includes performance updates.");
   };
 
   JR.webfontTips = function(){
@@ -214,7 +222,7 @@
   };
 
   JR.iFrameTips = function(){
-    var nodes = document.getElementsByTagName('iframe');
+    var nodes = $tagname('iframe');
     if(nodes.length>0 && nodes.length<4)
       JR.tip('Reduce the number of &lt;iframe&gt; tags.','There are '+nodes.length+' iframe elements on the page.');
     if(nodes.length>=4)
@@ -223,7 +231,7 @@
 
   JR.cssTips = function(){
     function linkTagTips(){
-    var nodes = [], links = document.getElementsByTagName('link'), i = links.length;
+    var nodes = [], links = $tagname('link'), i = links.length;
     if(i==0) return;
     while(i--) if((links[i].rel||'').toLowerCase()=='stylesheet') nodes.push(links[i]);
     if(nodes.length>1 && nodes.length<8)
@@ -232,13 +240,18 @@
       JR.warn('Reduce the number of &lt;link rel="stylesheet"&gt; tags','There are '+nodes.length+' external stylesheets loaded on the page.');
     }
     function styleAttributeTips(){
-      var nodes = document.getElementsByTagName('*'), i = nodes.length, styleNodes = 0;
-      while(i--) if(nodes[i].style.cssText.length > 0) styleNodes++;
+      var nodes = $tagname('*'), i = nodes.length, styleNodes = 0, styleBytes = 0;
+      while(i--)
+        if(nodes[i].style.cssText.length > 0){
+          if(JR._console) console.warn('Inline style', nodes[i]);
+          styleNodes++;
+          styleBytes += nodes[i].style.cssText.length + 8;
+        }
       if(styleNodes>0)
-        JR.tip('Reduce the number of tags that use the style attribute, replacing it with external CSS definitions.',styleNodes+' nodes use the style attribute.');
+        JR.tip('Reduce the number of tags that use the style attribute, replacing it with external CSS definitions.', styleNodes+' nodes use the style attribute, for a total of '+styleBytes+' bytes.');
     }
     function dontAtImport() {
-      var styles = document.getElementsByTagName('style'),
+      var styles = $tagname('style'),
         i = styles.length,
         present = false;
       if (i == 0) return;
@@ -298,7 +311,7 @@
 
    JR.flashTips = function() {
      var nodes = [],
-     obj = document.getElementsByTagName('embed'),
+     obj = $tagname('embed'),
      i = obj.length;
 
      if (i) {
@@ -307,7 +320,7 @@
        }
      }
 
-     obj = document.getElementsByTagName('object');
+     obj = $tagname('object');
      i = obj.length;
      if (i) {
        while (i--) {
@@ -334,7 +347,7 @@
   },
 
   JR.opacityTips = function(){
-    var nodes = document.getElementsByTagName('*'), op = [], i = nodes.length;
+    var nodes = $tagname('*'), op = [], i = nodes.length;
     while(i--){
       var opacity = JR.getStyle(nodes[i],'opacity') || 1;
       if(opacity<1) {
@@ -353,10 +366,13 @@
     function level(value,mid,high){
       return value<mid?'low':value<high?'mid':'high';
     }
-    var nodes = [].slice(document.getElementsByTagName('*')), i = nodes.length, nodecount = 0, ids = {}, multiIds = [], multiIdsElements = [],
-      empty = 0, deprecated = 0, whitespace = 0, textnodes = 0, comments = 0, deprecatedTags = {}, emptyAttr = 0;
+    var nodes = $tagname('*'), i = nodes.length, nodecount = 0, ids = {}, multiIds = [], multiIdsElements = [],
+      empty = 0, deprecated = 0, whitespace = 0, textnodes = 0, comments = 0, deprecatedTags = {}, emptyAttr = 0,
+      js_byte = 0, js = 0,
+      inlinejs = ['mouseover', 'mouseout','mousedown', 'mouseup','click','dblclick','mousemove', 'load','error','beforeunload','focus','blur','touchstart','touchend','touchmove'];
+      
     while(i--) {
-      var tag = nodes[i].tagName.toLowerCase(), attribute;
+      var tag = nodes[i].tagName.toLowerCase(), attribute, j = inlinejs.length;
       if (nodes[i].childNodes.length==0 && !(tag=='link' || tag=='br' || tag=='script' || tag=='meta' || tag=='img' ||
             tag=='a' || tag=='input' || tag=='hr' || tag=='param' || tag=='iframe' ||
             tag=='area' || tag=='base') && !((nodes[i].id||'') == '_firebugConsole')) {
@@ -397,6 +413,21 @@
           emptyAttr++;
         }
       }
+      
+      while( j-- ){
+        attribute = nodes[i].getAttribute('on'+inlinejs[j]);
+        if(attribute){
+            if(JR._console) console.warn('Inline JavaScript', nodes[i]);
+            js_byte += 5 + attribute.length + inlinejs[j].length;
+            js++;
+        }
+      }
+      
+      if(nodes[i].href && nodes[i].href.toLowerCase().indexOf( "javascript:" ) == 0 ){
+        if(JR._console) console.warn('Inline JavaScript', nodes[i]);
+        js++;
+        js_byte += nodes[i].href.length;
+      }
     }
     function findWhitespaceTextnodes(element){
       if(element.childNodes.length>0)
@@ -432,7 +463,9 @@
     if(comments)
       JR.tip('There are '+comments+' HTML comments.','Removing the comments can help improve the loading and DOM API performance of the page.');
     if(emptyAttr)
-      JR.warn('There are '+emptyAttr+' HTML elements with empty source attributes', 'Removing these nodes or updating the attributes will prevent double-loading of the page in some browsers. See this article for more information: '+dmlink('Empty image src can destroy your site','http://www.nczonline.net/blog/2009/11/30/empty-image-src-can-destroy-your-site/'))
+      JR.warn('There are '+emptyAttr+' HTML elements with empty source attributes.', 'Removing these nodes or updating the attributes will prevent double-loading of the page in some browsers. See this article for more information: '+dmlink('Empty image src can destroy your site','http://www.nczonline.net/blog/2009/11/30/empty-image-src-can-destroy-your-site/'))
+    if(js&&js_byte)
+      JR.tip('There are '+js_byte+' bytes of inline JavaScript code in '+js+' HTML nodes.', 'Removing the inline JavaScript, or updating the attributes will improve the loading speed of the page.');
   };
 
   JR.statsHTML = '';
@@ -456,7 +489,7 @@
     }
 
     function nametag(attr){
-      var ele = nametag.cache = nametag.cache || document.getElementsByTagName('*'), i = ele.length;
+      var ele = nametag.cache = nametag.cache || $tagname('*'), i = ele.length;
       while(i--){
         if(ele[i].name && ele[i].name == attr)
           return true;
@@ -503,7 +536,7 @@
         while(node = node.parentNode){ counter++ };
       return counter;
     }
-    var nodes = document.getElementsByTagName('*'), nodeStats = [], i = nodes.length, average = 0, very = false;
+    var nodes = $tagname('*'), nodeStats = [], i = nodes.length, average = 0, very = false;
     while(i--) {
       average += parentNodes(nodes[i]);
       if(parentNodes(nodes[i])>15){
@@ -595,9 +628,8 @@
     }
     return value;
   };
-  
+
   JR.execute = function(callback, noisy) {
-  
     var old = $('jr_results_tips');
     if(old) old.parentNode.removeChild(old);
     setTimeout(function(){
@@ -608,43 +640,33 @@
       } catch(e) {
         JR.info('Error '+e+' while analyzing page. '+dmlink('Please let the DOM Monster know about this problem', 'https://github.com/madrobby/dom-monster/issues') + '!');
       };
-      
-      if(noisy){
-      
-        var body = document.getElementsByTagName('body')[0], node = document.createElement('div');
-        node.id = 'jr_results';
-        body.appendChild(node);
-    
-        node.style.cssText =
-          JR.reset+'text-align:left;z-index:1000000;letter-spacing:0;position:fixed;bottom:0;'+
-          'color:#444;font:12px/13px \'Helvetica Neue\', Verdana, Arial, sans serif;'+
-          'width:80%;left:10%';
-        node.innerHTML =
-          '<div id="jr_results_tips" style="'+JR.reset+'max-height:400px;margin:10px;padding:5px;overflow:auto;background:#fff;border:2px solid #b42328;-moz-border-radius:9px;-webkit-border-radius:9px;-webkit-box-shadow: 0px 2px 40px rgba(0,0,0,0.5);">' +
-            '<div style="'+JR.reset+'height:23px;font-size:16px;font-weight:normal;margin-top:0px;margin-bottom:5px;color:#444">'+
-              '<div style="'+JR.reset+'float:left;padding:5px 0px 3px 5px" id="jr_results_prognosis_container">'+
-                '<span id="jr_results_prognosis" style="'+JR.reset+'"></span> '+
-                '<span style="'+JR.reset+'font-size:12px;font-weight:normal" id="jr_results_warnings_container"><span id="jr_results_warnings" style="'+JR.reset+'"></span></span>'+
-              '</div>'+
-              '<div style="'+JR.reset+'cursor:pointer;float:right;padding:5px 10px 3px 10px;height:15px;background:#b42328;-webkit-border-radius:5px;color:#fff;text-shadow:0px 1px 3px rgba(0,0,0,0.5)" onclick="location.href=\'http://mir.aculo.us/dom-monster/\'">'+
-                'dom monster <span style="'+JR.reset+'font-size:10px">v'+JR.Version+'</span>'+
-              '</div>'+
-              '<div style="'+JR.reset+'color:#888;float:right;padding:7px 10px 0px 10px;font-size:10px;text-decoration:underline;cursor:pointer" onclick="JR.close()">'+
-                'close'+
-              '</div>'+
+      var body = $tagname('body')[0], node = document.createElement('div');
+      node.id = 'jr_results';
+      body.appendChild(node);
+  
+      node.style.cssText =
+        JR.reset+'text-align:left;z-index:1000000;letter-spacing:0;position:fixed;bottom:0;'+
+        'color:#444;font:12px/13px \'Helvetica Neue\', Verdana, Arial, sans serif;'+
+        'width:80%;left:10%';
+      node.innerHTML =
+        '<div id="jr_results_tips" style="'+JR.reset+'max-height:400px;margin:10px;padding:5px;overflow:auto;background:#fff;border:2px solid #b42328;-moz-border-radius:9px;-webkit-border-radius:9px;-webkit-box-shadow: 0px 2px 40px rgba(0,0,0,0.5);">' +
+          '<div style="'+JR.reset+'height:23px;font-size:16px;font-weight:normal;margin-top:0px;margin-bottom:5px;color:#444">'+
+            '<div style="'+JR.reset+'float:left;padding:5px 0px 3px 5px" id="jr_results_prognosis_container">'+
+              '<span id="jr_results_prognosis" style="'+JR.reset+'"></span> '+
+              '<span style="'+JR.reset+'font-size:12px;font-weight:normal" id="jr_results_warnings_container"><span id="jr_results_warnings" style="'+JR.reset+'"></span></span>'+
             '</div>'+
-            '<div style="'+JR.reset+'float:left;width:220px;padding:4px;margin-top:2px" id="jr_stats">'+
+            '<div style="'+JR.reset+'cursor:pointer;float:right;padding:5px 10px 3px 10px;height:15px;background:#b42328;-webkit-border-radius:5px;color:#fff;text-shadow:0px 1px 3px rgba(0,0,0,0.5)" onclick="location.href=\'http://mir.aculo.us/dom-monster/\'">'+
+              'dom monster <span style="'+JR.reset+'font-size:10px">v'+JR.Version+'</span>'+
             '</div>'+
-          '</div>';
-        JR.flush();
-      
-      }
-      
-      if(callback){
-        
-        callback(JR.rawOutput);
-      }
+            '<div style="'+JR.reset+'color:#888;float:right;padding:7px 10px 0px 10px;font-size:10px;text-decoration:underline;cursor:pointer" onclick="JR.close()">'+
+              'close'+
+            '</div>'+
+          '</div>'+
+          '<div style="'+JR.reset+'float:left;width:220px;padding:4px;margin-top:2px" id="jr_stats">'+
+          '</div>'+
+        '</div>';
+      JR.flush();
     },10);
   };
-  
-})();
+ })();
+
