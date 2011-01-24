@@ -494,7 +494,7 @@
 
   JR.globals = function(){
     function ignore(name){
-      var allowed = ['Components','XPCNativeWrapper','XPCSafeJSObjectWrapper','getInterface','netscape','GetWeakReference'],
+      var allowed = ['Components','XPCNativeWrapper','XPCSafeJSObjectWrapper','getInterface','netscape','GetWeakReference','XPathResult','GM_addStyle','GM_safeHTMLParser','GM_log','GM_notification','GM_setValue','GM_getValue','GM_deleteValue','GM_listValues','GM_setClipboard','GM_getResourceURL','GM_getResourceText','GM_openInTab','GM_xmlhttpRequest','GM_registerMenuCommand','GM_worker','GM_updatingEnabled','console','unsafeWindow','cfAnalyzeConfig','activateDomMonster','CFD','InstallTrigger','_createFirebugConsole','loadFirebugConsole','_firebug','JR'],
       i = allowed.length;
       while(i--){
         if(allowed[i] === name)
