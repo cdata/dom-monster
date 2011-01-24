@@ -682,8 +682,8 @@
             '<div style="'+JR.reset+'float:left;width:220px;padding:4px;margin-top:2px" id="jr_stats">'+
             '</div>'+
           '</div>';
-        }
-      JR.flush();
+        JR.flush();
+      }
     },10);
   };
   
