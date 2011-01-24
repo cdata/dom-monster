@@ -6,11 +6,10 @@
  */
 
 (function(){
-  if(!('JR' in window)) window.JR = { Version: '1.2.3' };
-  var JR = window.JR;
+  var JR = { Version: '1.2.4' };
 
   function $(id){ return document.getElementById(id); }
-  
+
   function $tagname(tagname){
     return [].slice.call(document.getElementsByTagName(tagname));
   }
@@ -26,6 +25,16 @@
 
   function dmlink(str, url){
     return '<a style="'+JR.reset+'text-decoration:underline;color:#844" href="'+url+'">'+html(str)+'</a>';
+  }
+
+  function unique(arr){
+    var hash={}, result=[];
+    for (var i=0, l=arr.length; i<l; ++i)
+      if(!hash.hasOwnProperty(arr[i])){
+        hash[arr[i]]=true;
+        result.push(arr[i]);
+      }
+    return result;
   }
 
   JR.close = function(){
@@ -370,7 +379,10 @@
       empty = 0, deprecated = 0, whitespace = 0, textnodes = 0, comments = 0, deprecatedTags = {}, emptyAttr = 0,
       js_byte = 0, js = 0,
       inlinejs = ['mouseover', 'mouseout','mousedown', 'mouseup','click','dblclick','mousemove', 'load','error','beforeunload','focus','blur','touchstart','touchend','touchmove'];
-      
+
+    var DEPRECATED = ("font center strike u dir applet acronym bgsound isindex layer ilayer nolayer listing marquee nobr " +
+      "noembed plaintext spacer xml xmp").split(' ');
+
     while(i--) {
       var tag = nodes[i].tagName.toLowerCase(), attribute, j = inlinejs.length;
       if (nodes[i].childNodes.length==0 && !(tag=='link' || tag=='br' || tag=='script' || tag=='meta' || tag=='img' ||
@@ -380,7 +392,9 @@
         empty++;
       }
 
-      if (tag=='font' || tag=='center' || tag=='s' || tag=='strike' || tag=='u' || tag=='dir' || tag=='applet'){
+      if(DEPRECATED.indexOf(tag)>-1) {
+        console.log(tag);
+        console.log(DEPRECATED.indexOf(tag));
         if(JR._console) console.warn('Deprecated node', nodes[i]);
         if(!deprecatedTags[tag]) deprecatedTags[tag] = true;
         deprecated++;
@@ -413,7 +427,7 @@
           emptyAttr++;
         }
       }
-      
+
       while( j-- ){
         attribute = nodes[i].getAttribute('on'+inlinejs[j]);
         if(attribute){
@@ -422,7 +436,7 @@
             js++;
         }
       }
-      
+
       if(nodes[i].href && nodes[i].href.toLowerCase().indexOf( "javascript:" ) == 0 ){
         if(JR._console) console.warn('Inline JavaScript', nodes[i]);
         js++;
@@ -452,11 +466,12 @@
     if(deprecated) {
       var tags = [];
       for(tag in deprecatedTags) tags.push(tag.toUpperCase());
-      JR.tip('There are '+deprecated+' nodes which use a deprecated tag name ('+tags.join(', ')+').','Try updating this content to HTML4.');
+      JR.tip('There are '+deprecated+' nodes which use a deprecated tag name ('+tags.join(', ')+').','Try updating this content to HTML5.');
     }
     if(multiIds.length > 0){
       JR.warn('There '+((multiIds.length==1)?'is ':'are ')+multiIds.length+' duplicate id'+((multiIds.length>1)?'s':'')+' for nodes in your document.', 'Node ids must be unique within the HTML document. See JavaScript console for details.');
-      if(JR._console) console.warn('Nodes with duplicate ids found', multiIdsElements);
+      if(JR._console) console.warn('Duplicate element ids found', unique(multiIds));
+      if(JR._console) console.warn('Nodes affected by duplicate ids', multiIdsElements);
     }
     if(whitespace)
       JR.tip(((whitespace/nodecount)*100).toFixed(1)+'% of nodes are whitespace-only text nodes.','Reducing the amount of whitespace, like line breaks and tab stops, can help improve the loading and DOM API performance of the page.');
@@ -640,31 +655,34 @@
       } catch(e) {
         JR.info('Error '+e+' while analyzing page. '+dmlink('Please let the DOM Monster know about this problem', 'https://github.com/madrobby/dom-monster/issues') + '!');
       };
-      var body = $tagname('body')[0], node = document.createElement('div');
-      node.id = 'jr_results';
-      body.appendChild(node);
-  
-      node.style.cssText =
-        JR.reset+'text-align:left;z-index:1000000;letter-spacing:0;position:fixed;bottom:0;'+
-        'color:#444;font:12px/13px \'Helvetica Neue\', Verdana, Arial, sans serif;'+
-        'width:80%;left:10%';
-      node.innerHTML =
-        '<div id="jr_results_tips" style="'+JR.reset+'max-height:400px;margin:10px;padding:5px;overflow:auto;background:#fff;border:2px solid #b42328;-moz-border-radius:9px;-webkit-border-radius:9px;-webkit-box-shadow: 0px 2px 40px rgba(0,0,0,0.5);">' +
-          '<div style="'+JR.reset+'height:23px;font-size:16px;font-weight:normal;margin-top:0px;margin-bottom:5px;color:#444">'+
-            '<div style="'+JR.reset+'float:left;padding:5px 0px 3px 5px" id="jr_results_prognosis_container">'+
-              '<span id="jr_results_prognosis" style="'+JR.reset+'"></span> '+
-              '<span style="'+JR.reset+'font-size:12px;font-weight:normal" id="jr_results_warnings_container"><span id="jr_results_warnings" style="'+JR.reset+'"></span></span>'+
+      callback(JR.rawOutput);
+      if(noisy) {
+        var body = $tagname('body')[0], node = document.createElement('div');
+        node.id = 'jr_results';
+        body.appendChild(node);
+    
+        node.style.cssText =
+          JR.reset+'text-align:left;z-index:1000000;letter-spacing:0;position:fixed;bottom:0;'+
+          'color:#444;font:12px/13px \'Helvetica Neue\', Verdana, Arial, sans serif;'+
+          'width:80%;left:10%';
+        node.innerHTML =
+          '<div id="jr_results_tips" style="'+JR.reset+'max-height:400px;margin:10px;padding:5px;overflow:auto;background:#fff;border:2px solid #b42328;-moz-border-radius:9px;-webkit-border-radius:9px;-webkit-box-shadow: 0px 2px 40px rgba(0,0,0,0.5);">' +
+            '<div style="'+JR.reset+'height:23px;font-size:16px;font-weight:normal;margin-top:0px;margin-bottom:5px;color:#444">'+
+              '<div style="'+JR.reset+'float:left;padding:5px 0px 3px 5px" id="jr_results_prognosis_container">'+
+                '<span id="jr_results_prognosis" style="'+JR.reset+'"></span> '+
+                '<span style="'+JR.reset+'font-size:12px;font-weight:normal" id="jr_results_warnings_container"><span id="jr_results_warnings" style="'+JR.reset+'"></span></span>'+
+              '</div>'+
+              '<div style="'+JR.reset+'cursor:pointer;float:right;padding:5px 10px 3px 10px;height:15px;background:#b42328;-webkit-border-radius:5px;color:#fff;text-shadow:0px 1px 3px rgba(0,0,0,0.5)" onclick="location.href=\'http://mir.aculo.us/dom-monster/\'">'+
+                'dom monster <span style="'+JR.reset+'font-size:10px">v'+JR.Version+'</span>'+
+              '</div>'+
+              '<div style="'+JR.reset+'color:#888;float:right;padding:7px 10px 0px 10px;font-size:10px;text-decoration:underline;cursor:pointer" onclick="JR.close()">'+
+                'close'+
+              '</div>'+
             '</div>'+
-            '<div style="'+JR.reset+'cursor:pointer;float:right;padding:5px 10px 3px 10px;height:15px;background:#b42328;-webkit-border-radius:5px;color:#fff;text-shadow:0px 1px 3px rgba(0,0,0,0.5)" onclick="location.href=\'http://mir.aculo.us/dom-monster/\'">'+
-              'dom monster <span style="'+JR.reset+'font-size:10px">v'+JR.Version+'</span>'+
+            '<div style="'+JR.reset+'float:left;width:220px;padding:4px;margin-top:2px" id="jr_stats">'+
             '</div>'+
-            '<div style="'+JR.reset+'color:#888;float:right;padding:7px 10px 0px 10px;font-size:10px;text-decoration:underline;cursor:pointer" onclick="JR.close()">'+
-              'close'+
-            '</div>'+
-          '</div>'+
-          '<div style="'+JR.reset+'float:left;width:220px;padding:4px;margin-top:2px" id="jr_stats">'+
-          '</div>'+
-        '</div>';
+          '</div>';
+        }
       JR.flush();
     },10);
   };
