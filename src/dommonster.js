@@ -686,5 +686,7 @@
       JR.flush();
     },10);
   };
+  
+  window.JR = JR;
  })();
 
